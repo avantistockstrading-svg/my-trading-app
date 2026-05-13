@@ -4,7 +4,7 @@ import streamlit as st
 import pandas as pd
 import pandas_ta as ta
 import plotly.graph_objects as go
-from SmartApi import SmartConnect
+from smartapi.smartConnect import SmartConnect
 import pyotp
 from datetime import datetime, timedelta
 import time
