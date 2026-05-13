@@ -85,11 +85,13 @@ with st.sidebar:
 # ===== Get Market Data =====
 def get_market_intel(df):
     if df is None or df.empty:
-        return {"Trend": "NEUTRAL", "Signal": "NONE", "SL": 0}
+        return {"Trend": "NEUTRAL", "Signal": "NONE", "SL": 0, "price": 0, "ema9": 0, "ema20": 0, "rsi": 50}
     
+    # Clean columns
     df.columns = [str(c).lower() for c in df.columns]
+    
     if 'close' not in df.columns:
-        return {"Trend": "NEUTRAL", "Signal": "NONE", "SL": 0}
+        return {"Trend": "NEUTRAL", "Signal": "NONE", "SL": 0, "price": 0, "ema9": 0, "ema20": 0, "rsi": 50}
     
     c = df['close'].iloc[-1]
     
@@ -125,16 +127,30 @@ intel = get_market_intel(df)
 st.title("📈 RUDRANSH PRO-ALGO X")
 st.markdown(f"### {market} Live Trading")
 
+# Check if data is available
+if intel["price"] == 0:
+    st.error("Unable to fetch market data. Please check your internet connection and try again.")
+    st.stop()
+
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("Current Price", f"₹{intel['price']:.2f}")
 col2.metric("Signal", f"🟢 {intel['Signal']}" if intel['Signal'] == "BUY" else f"🔴 {intel['Signal']}" if intel['Signal'] == "SELL" else "⚪ WAIT")
 col3.metric("Trend", intel['Trend'])
 col4.metric("Stop Loss", f"₹{intel['SL']}" if intel['SL'] else "N/A")
 
+# Additional indicators
+st.markdown("---")
+st.markdown("### 📊 Technical Indicators")
+col_i1, col_i2, col_i3 = st.columns(3)
+col_i1.metric("EMA 9", f"₹{intel['ema9']:.2f}")
+col_i2.metric("EMA 20", f"₹{intel['ema20']:.2f}")
+col_i3.metric("RSI", f"{intel['rsi']:.1f}")
+
 # Chart
-if not df.empty:
+if not df.empty and 'Close' in df.columns:
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=df.index, y=df['Close'], mode='lines', name=market, line=dict(color='#00ff88', width=2)))
+    fig.add_trace(go.Scatter(x=df.index, y=df['Close'].rolling(9).mean(), mode='lines', name='EMA 9', line=dict(color='#ff004f', width=1)))
     fig.update_layout(template="plotly_dark", height=400, title=f"{market} Price Chart")
     st.plotly_chart(fig, use_container_width=True)
 
@@ -153,11 +169,11 @@ time_allowed = start_time <= now.time() <= end_time
 trade_limit_reached = trades_today >= max_trades
 cooldown_ok = (datetime.now() - st.session_state.last_trade_time).seconds > 300
 
-# Simulate Trading (without actual Angel One API)
+# Execute Signals
 if st.session_state.algo_running and time_allowed and not trade_limit_reached and cooldown_ok:
     if intel['Signal'] == "BUY" and st.session_state.last_trade_side != "BUY":
         st.success(f"🚀 BUY SIGNAL | {quantity} qty at ₹{intel['price']:.2f}")
-        send_telegram(f"🚀 BUY {market} | Qty: {quantity} | Price: ₹{intel['price']:.2f}")
+        send_telegram(f"🚀 BUY {market} | Qty: {quantity} | Price: ₹{intel['price']:.2f} | SL: ₹{intel['SL']}")
         
         if market == "NIFTY":
             st.session_state.nifty_trades_today += 1
@@ -172,7 +188,7 @@ if st.session_state.algo_running and time_allowed and not trade_limit_reached an
     
     elif intel['Signal'] == "SELL" and st.session_state.last_trade_side != "SELL":
         st.error(f"🔻 SELL SIGNAL | {quantity} qty at ₹{intel['price']:.2f}")
-        send_telegram(f"🔻 SELL {market} | Qty: {quantity} | Price: ₹{intel['price']:.2f}")
+        send_telegram(f"🔻 SELL {market} | Qty: {quantity} | Price: ₹{intel['price']:.2f} | SL: ₹{intel['SL']}")
         
         if market == "NIFTY":
             st.session_state.nifty_trades_today += 1
@@ -185,6 +201,7 @@ if st.session_state.algo_running and time_allowed and not trade_limit_reached an
         st.session_state.last_trade_time = datetime.now()
 
 # ===== Status =====
+st.markdown("---")
 if st.session_state.algo_running and time_allowed:
     st.success("🟢 ALGO IS RUNNING")
 elif not time_allowed:
@@ -195,10 +212,13 @@ else:
 st.caption("🔄 Auto Refresh Every 10 Seconds")
 st_autorefresh(interval=10000, key="refresh")
 
-# ===== Daily Status =====
+# ===== Daily Trade Status =====
 st.markdown("---")
 st.markdown("### 📊 Daily Trade Status")
 col_d1, col_d2, col_d3 = st.columns(3)
 col_d1.metric("NIFTY Trades", f"{st.session_state.nifty_trades_today}/2")
 col_d2.metric("CRUDE Trades", f"{st.session_state.crude_trades_today}/2")
 col_d3.metric("NG Trades", f"{st.session_state.ng_trades_today}/2")
+
+st.markdown("---")
+st.markdown("<p style='text-align:center;'>🚀 RUDRANSH PRO-ALGO X | Multi-Asset Trading Algorithm</p>", unsafe_allow_html=True)
