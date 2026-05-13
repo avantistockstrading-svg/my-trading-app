@@ -2,14 +2,13 @@ import streamlit as st
 import pandas as pd
 import pandas_ta as ta
 import plotly.graph_objects as go
-from SmartApi import SmartConnect
+from smartapi.smartConnect import SmartConnect  # ← हे बरोबर आहे
 import pyotp
 import yfinance as yf
 import requests
 from datetime import datetime, timedelta
 import time
 from streamlit_autorefresh import st_autorefresh
-import hashlib
 
 # ===== SECURITY - CHANGE THESE PASSWORDS =====
 APP_PASSWORD = "Rudransh@8055"  # CHANGE THIS - App उघडताना विचारेल
