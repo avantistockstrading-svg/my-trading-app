@@ -4,6 +4,4 @@ pandas_ta
 yfinance
 plotly
 requests
-smartapi-python
-pyotp
 streamlit-autorefresh
